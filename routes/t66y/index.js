@@ -99,18 +99,21 @@ module.exports = async (ctx) => {
         }
 
         // Handle video
-        const video = $('a:nth-of-type(2)');
-        if (video) {
+        const videos = $('a[onclick*=http]');
+        const iframes = $('iframe');
+        const regVideo = /https?:\/\/.*'/;
+
+        for (let k = 0; k < Math.min(videos.length, iframes.length); k++) {
+            const video = $(videos[k]);
+            const iframe = $(iframes[k]);
             const videoScript = video.attr('onclick');
-            const regVideo = /https?:\/\/.*'/;
             const videoRes = regVideo.exec(videoScript);
             if (videoRes && videoRes.length !== 0) {
                 let link = videoRes[0];
                 link = link.slice(0, link.length - 1);
-                $('iframe').attr('src', link);
+                iframe.attr('src', link);
             }
         }
-
         // Handle img tag
         let images = $('img');
         for (let k = 0; k < images.length; k++) {
