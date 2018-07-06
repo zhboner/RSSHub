@@ -117,12 +117,17 @@ module.exports = async (ctx) => {
         // Handle img tag
         let images = $('img');
         for (let k = 0; k < images.length; k++) {
-            $(images[k]).replaceWith(`<img src="${$(images[k]).attr('data-src')}">`);
+            const image = $(images[k]);
+            if (image.attr('data-src') && !image.attr('src')) {
+                image.attr('src', image.attr('data-src'));
+            }
         }
         // Handle input tag
         images = $('input');
         for (let k = 0; k < images.length; k++) {
-            $(images[k]).replaceWith(`<img src="${$(images[k]).attr('data-src')}">`);
+            const image = $(images[k]);
+            const src = image.attr('src') || image.attr('data-src');
+            $(images[k]).replaceWith(`<img src="${src}">`);
         }
         out[indexList[i]].description = $.html();
         out[indexList[i]].pubDate = time.toUTCString();
