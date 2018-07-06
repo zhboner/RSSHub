@@ -1,5 +1,6 @@
 const cheerio = require('cheerio');
 const axios = require('../../utils/axios');
+const url = require('url');
 
 module.exports = async (ctx, site, index) => {
     const res = await axios.get(site);
@@ -15,10 +16,21 @@ module.exports = async (ctx, site, index) => {
     const reqList = [];
     const out = [];
     const indexList = [];
+    const itemSet = {};
+    let skip = 0;
 
     for (let i = 0; i < news.length; i++) {
         const single = cheerio(news[i]);
-        const link = single.attr('href');
+        let link = single.attr('href');
+        const search = url.parse(link).search;
+        if (search) {
+            link = link.slice(0, link.length - search.length);
+        }
+        if (itemSet[link]) {
+            skip++;
+            continue;
+        }
+        itemSet[link] = 1;
         const title = single.text();
 
         const cache = await ctx.cache.get(link);
@@ -33,7 +45,7 @@ module.exports = async (ctx, site, index) => {
             guid: link,
         });
         reqList.push(axios.get(link));
-        indexList.push(i);
+        indexList.push(i - skip);
     }
 
     const resList = await axios.all(reqList);
