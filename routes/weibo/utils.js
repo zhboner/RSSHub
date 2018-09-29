@@ -6,8 +6,11 @@ const weiboUtils = {
         temp = temp.replace(/<span class=["|']url-icon["|']>.*?网页链接<\/span>/g, '网页链接');
         // 表情图标转换为文字
         temp = temp.replace(/<span class="url-icon"><img.*?alt="(.*?)".*?><\/span>/g, '$1');
+        // 去掉乱七八糟的图标
+        temp = temp.replace(/<span class=["|']url-icon["|']>(.*?)<\/span>/g, '');
         // 去掉全文
         temp = temp.replace(/全文<br>/g, '<br>');
+        temp = temp.replace(/<a href="(.*?)">全文<\/a>/g, '');
 
         // 处理外部链接
         temp = temp.replace(/https:\/\/weibo\.cn\/sinaurl\/.*?&u=(http.*?")/g, function(match, p1) {
@@ -31,41 +34,6 @@ const weiboUtils = {
             });
         }
         return temp;
-    },
-
-    getTime: (html) => {
-        let math;
-        let date = new Date();
-        if (/(\d+)分钟前/.exec(html)) {
-            math = /(\d+)分钟前/.exec(html);
-            date.setMinutes(date.getMinutes() - math[1]);
-            return date.toUTCString();
-        } else if (/(\d+)小时前/.exec(html)) {
-            math = /(\d+)小时前/.exec(html);
-            date.setHours(date.getHours() - math[1]);
-            return date.toUTCString();
-        } else if (/今天 (\d+):(\d+)/.exec(html)) {
-            math = /今天 (\d+):(\d+)/.exec(html);
-            date = new Date(date.getFullYear(), date.getMonth(), date.getDate(), math[1], math[2]);
-            return date.toUTCString();
-        } else if (/昨天 (\d+):(\d+)/.exec(html)) {
-            math = /昨天 (\d+):(\d+)/.exec(html);
-            date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1, math[1], math[2]);
-            return date.toUTCString();
-        } else if (/(\d+)月(\d+)日 (\d+):(\d+)/.exec(html)) {
-            math = /(\d+)月(\d+)日 (\d+):(\d+)/.exec(html);
-            date = new Date(date.getFullYear(), parseInt(math[1]) - 1, math[2], math[3], math[4]);
-            return date.toUTCString();
-        } else if (/(\d+)-(\d+)-(\d+)/.exec(html)) {
-            math = /(\d+)-(\d+)-(\d+)/.exec(html);
-            date = new Date(math[1], parseInt(math[2]) - 1, math[3]);
-            return date.toUTCString();
-        } else if (/(\d+)-(\d+)/.exec(html)) {
-            math = /(\d+)-(\d+)/.exec(html);
-            date = new Date(date.getFullYear(), parseInt(math[1]) - 1, math[2]);
-            return date.toUTCString();
-        }
-        return html;
     },
 };
 

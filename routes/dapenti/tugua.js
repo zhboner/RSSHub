@@ -1,6 +1,5 @@
 const axios = require('../../utils/axios');
 const cheerio = require('cheerio');
-const config = require('../../config');
 const iconv = require('iconv-lite');
 
 module.exports = async (ctx) => {
@@ -8,7 +7,6 @@ module.exports = async (ctx) => {
         method: 'get',
         url: 'https://www.dapenti.com/blog/blog.asp?name=xilei&subjectid=70',
         headers: {
-            'User-Agent': config.ua,
             Referer: 'https://www.dapenti.com/blog/blog.asp?name=xilei&subjectid=70',
         },
         // 喷嚏网编码为GBK，需要转码
@@ -20,32 +18,36 @@ module.exports = async (ctx) => {
     const data = iconv.decode(listRes.data, 'gb2312');
     const $ = cheerio.load(data);
     // 只取最近的三个图卦，取全文rss
-    const list = $('li', 'ul').slice(0, 3);
-    const result_item = [];
-    // 为了避免async/await嵌套，使用for循环代替map方法
-    for (let i = 0; i < list.length; i++) {
-        const el = $(list[i]);
-        const url = `https://www.dapenti.com/blog/${el.find('a').attr('href')}`;
-        const original_data = await axios({
-            method: 'get',
-            url: url,
-            headers: {
-                'User-Agent': config.ua,
-                Referer: url,
-            },
-            responseType: 'arraybuffer',
-        });
-        const convert_data = iconv.decode(original_data.data, 'gbk');
-        const detail_data = cheerio.load(convert_data, {
-            decodeEntities: false,
-        })('div[class="oblog_text"]');
-        const item = {
-            title: el.text(),
-            description: detail_data,
-            link: url,
-        };
-        result_item.push(item);
-    }
+    const list = $('li', 'ul')
+        .slice(0, 3)
+        .get();
+
+    const result_item = await Promise.all(
+        list.map(async (item) => {
+            const el = $(item);
+            const url = `https://www.dapenti.com/blog/${el.find('a').attr('href')}`;
+            const original_data = await axios({
+                method: 'get',
+                url: url,
+                headers: {
+                    Referer: url,
+                },
+                responseType: 'arraybuffer',
+            });
+            const convert_data = iconv.decode(original_data.data, 'gbk');
+            const detail_data = cheerio
+                .load(convert_data, {
+                    decodeEntities: false,
+                })('div[class="oblog_text"]')
+                .html();
+            const single = {
+                title: el.text(),
+                description: detail_data,
+                link: url,
+            };
+            return Promise.resolve(single);
+        })
+    );
 
     ctx.state.data = {
         title: '喷嚏图卦',

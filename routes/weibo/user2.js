@@ -1,7 +1,6 @@
 const axios = require('../../utils/axios');
 const cheerio = require('cheerio');
-const config = require('../../config');
-const weiboUtils = require('./utils');
+const date = require('../../utils/date');
 
 module.exports = async (ctx) => {
     const uid = ctx.params.uid;
@@ -10,7 +9,6 @@ module.exports = async (ctx) => {
         method: 'get',
         url: `http://service.weibo.com/widget/widget_blog.php?uid=${uid}`,
         headers: {
-            'User-Agent': config.ua,
             Referer: `http://service.weibo.com/widget/widget_blog.php?uid=${uid}`,
         },
     });
@@ -31,16 +29,14 @@ module.exports = async (ctx) => {
             .text()
             .replace(/^\s+|\s+$/g, '')
             .replace(/\u200B/g, '');
-        if (wb.title.length > 24) {
-            wb.title = wb.title.slice(0, 24) + '...';
-        } else if (wb.title === '') {
+        if (wb.title === '') {
             wb.title = '[图片]';
         }
         wb.description = titleEle
             .html()
             .replace(/^\s+|\s+$/g, '')
             .replace(/thumbnail/, 'large');
-        wb.pubDate = weiboUtils.getTime(item.find('.link_d').html());
+        wb.pubDate = date(item.find('.link_d').html(), 8);
         wb.link = item.find('.wgtCell_tm a').attr('href');
         wbs.push(wb);
     });

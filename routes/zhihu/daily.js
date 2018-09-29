@@ -1,5 +1,4 @@
 const axios = require('../../utils/axios');
-const config = require('../../config');
 const utils = require('./utils');
 
 // 参考：https://github.com/izzyleung/ZhihuDailyPurify/wiki/%E7%9F%A5%E4%B9%8E%E6%97%A5%E6%8A%A5-API-%E5%88%86%E6%9E%90
@@ -16,34 +15,34 @@ module.exports = async (ctx) => {
     });
     // 根据api的说明，过滤掉极个别站外链接
     const storyList = listRes.data.stories.filter((el) => el.type === 0);
-    const resultItem = [];
-    for (let i = 0; i < storyList.length; i++) {
-        const url = 'https://news-at.zhihu.com/api/4/news/' + storyList[i].id;
-        const item = {
-            title: storyList[i].title,
-            description: '',
-            link: 'https://news-at.zhihu.com/story/' + storyList[i].id,
-        };
-        const key = 'daily' + storyList[i].id;
-        const value = await ctx.cache.get(key);
+    const resultItem = await Promise.all(
+        storyList.map(async (story) => {
+            const url = 'https://news-at.zhihu.com/api/4/news/' + story.id;
+            const item = {
+                title: story.title,
+                description: '',
+                link: 'https://news-at.zhihu.com/story/' + story.id,
+            };
+            const key = 'daily' + story.id;
+            const value = await ctx.cache.get(key);
 
-        if (value) {
-            item.description = value;
-        } else {
-            const storyDetail = await axios({
-                method: 'get',
-                url: url,
-                headers: {
-                    'User-Agent': config.ua,
-                    Referer: url,
-                },
-            });
-            item.description = storyDetail.data.body;
-            ctx.cache.set(key, storyDetail.data.body, 24 * 60 * 60);
-        }
+            if (value) {
+                item.description = value;
+            } else {
+                const storyDetail = await axios({
+                    method: 'get',
+                    url: url,
+                    headers: {
+                        Referer: url,
+                    },
+                });
+                item.description = utils.ProcessImage(storyDetail.data.body.replace(/<div class="meta">([\s\S]*?)<\/div>/g, '<strong>$1</strong>'));
+                ctx.cache.set(key, item.description, 24 * 60 * 60);
+            }
 
-        resultItem.push(item);
-    }
+            return Promise.resolve(item);
+        })
+    );
 
     ctx.state.data = {
         title: '知乎日报',

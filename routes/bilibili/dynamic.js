@@ -1,6 +1,5 @@
 const axios = require('../../utils/axios');
 const JSONbig = require('json-bigint');
-const config = require('../../config');
 
 module.exports = async (ctx) => {
     const uid = ctx.params.uid;
@@ -9,7 +8,6 @@ module.exports = async (ctx) => {
         method: 'get',
         url: `https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${uid}`,
         headers: {
-            'User-Agent': config.ua,
             Referer: `https://space.bilibili.com/${uid}/`,
         },
         transformResponse: [(data) => data],
@@ -23,6 +21,7 @@ module.exports = async (ctx) => {
         item: data.map((item) => {
             const parsed = JSONbig.parse(item.card);
             const data = parsed.item || parsed;
+            const origin = parsed.origin ? JSONbig.parse(parsed.origin) : null;
 
             // img
             let imgHTML = '';
@@ -39,21 +38,15 @@ module.exports = async (ctx) => {
             let link = '';
             if (data.dynamic_id) {
                 link = `https://t.bilibili.com/${data.dynamic_id}`;
-            } else if (data.aid) {
-                link = `https://www.bilibili.com/video/av${data.aid}`;
-            } else if (data.video_playurl) {
-                link = `https://vc.bilibili.com/video/${data.id}`;
-            } else if (data.id) {
-                link = `https://h.bilibili.com/${data.id}`;
-            } else if (data.rp_id && item.desc && item.desc.dynamic_id) {
-                link = `https://t.bilibili.com/${item.desc.dynamic_id}`;
-            } else if (data.sketch && data.sketch.sketch_id && item.desc && item.desc.dynamic_id) {
+            } else if (item.desc && item.desc.dynamic_id) {
                 link = `https://t.bilibili.com/${item.desc.dynamic_id}`;
             }
 
+            const getDes = (data) => data.desc || data.description || data.content || data.summary || (data.vest && data.vest.content) + (data.sketch && data.sketch.title);
+
             return {
                 title: data.title || data.description || data.content || (data.vest && data.vest.content),
-                description: `${data.desc || data.description || data.content || data.summary || (data.vest && data.vest.content) + (data.sketch && data.sketch.title)}${imgHTML} `,
+                description: `${getDes(data)}${origin ? `<br><br>转发自: @${(origin.user && origin.user.uname) || (origin.owner && origin.owner.name)}: ${getDes(origin.item || origin)}` : ''}${imgHTML} `,
                 pubDate: new Date(item.desc.timestamp * 1000).toUTCString(),
                 link: link,
             };

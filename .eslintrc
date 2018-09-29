@@ -2,11 +2,8 @@
     "extends": ["eslint:recommended", "plugin:prettier/recommended"],
     "plugins": ["prettier"],
     "parserOptions": {
-        "ecmaVersion": 2017,
-        "sourceType": "module",
-        "ecmaFeatures": {
-            "experimentalObjectRestSpread": true
-        }
+        "ecmaVersion": 2018,
+        "sourceType": "module"
     },
     "env": {
         "node": true,
@@ -53,6 +50,7 @@
         "no-trailing-spaces": 1,
         "quotes": [1, "single"],
         "no-control-regex": 0,
-        "prettier/prettier": 0
+        "prettier/prettier": 0,
+        "no-await-in-loop": 1
     }
 }
